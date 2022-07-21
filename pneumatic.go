@@ -1,41 +1,17 @@
 package pneumatic
 
-type Pipeline[T any] interface {
-	Next() (T, bool)
-}
-
-type PipelineStep[T any, U any] struct {
-	prev Pipeline[T]
-}
-
-// Get the next value from this pipeline step
-func (p *PipelineStep[T, U]) Next() (T, bool) {
-	return p.prev.Next()
-}
-
-func (p PipelineStep[T, U]) Collect() []T {
-	arr := []T{}
-	for {
-		val, ok := p.prev.Next()
-		if !ok {
-			break
-		}
-
-		arr = append(arr, val)
-	}
-
-	return arr
-}
-
-///////////////////////////////////////////////////////////////////////////////
+import (
+	"github.com/skubalj/pneumatic/pipeline"
+)
 
 type fromSlice[T any] struct {
 	idx    int
 	source []T
 }
 
-func NewFromSlice[T any](slice []T) PipelineStep[T, T] {
-	return PipelineStep[T, T]{&fromSlice[T]{0, slice}}
+// Create a new pipeline that iterates through the given slice
+func FromSlice[T any](slice []T) pipeline.PipelineStep[T, T] {
+	return pipeline.StepFrom[T, T](&fromSlice[T]{0, slice})
 }
 
 func (fs *fromSlice[T]) Next() (T, bool) {
@@ -48,44 +24,58 @@ func (fs *fromSlice[T]) Next() (T, bool) {
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type filter[T any] struct {
-	PipelineStep[T, T]
-	fn func(T) bool
+type fromChan[T any] struct {
+	ch chan T
 }
 
-func (p PipelineStep[T, U]) Filter(pred func(T) bool) PipelineStep[T, T] {
-	return PipelineStep[T, T]{&filter[T]{PipelineStep[T, T](p), pred}}
+// Create a new pipeline from the provided channel.
+//
+// This pipeline will stay open until the given channel is closed by the sender.
+func FromChan[T any](ch chan T) pipeline.PipelineStep[T, T] {
+	return pipeline.StepFrom[T, T](&fromChan[T]{ch})
 }
 
-func (f *filter[T]) Next() (T, bool) {
-	for {
-		n, ok := f.prev.Next()
-		if !ok {
-			return *new(T), false
-		} else if f.fn(n) {
-			return n, true
-		}
-	}
+func (fc *fromChan[T]) Next() (T, bool) {
+	val, ok := <-fc.ch
+	return val, ok
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type map_op[T, U any] struct {
-	PipelineStep[T, U]
-	fn func(T) U
+type empty[T any] struct{}
+
+// Create a new empty pipeline that yields no elements.
+//
+// This can be used with `chain` to build up a pipeline from many smaller pipelines
+func Empty[T any]() pipeline.PipelineStep[T, T] {
+	return pipeline.StepFrom[T, T](new(empty[T]))
 }
 
-func (p PipelineStep[T, U]) Map(fn func(T) U) PipelineStep[U, U] {
-	return PipelineStep[U, U]{&map_op[T, U]{p, fn}}
+func (fs *empty[T]) Next() (T, bool) {
+	return *new(T), false
 }
 
-func (m *map_op[T, U]) Next() (U, bool) {
-	n, ok := m.prev.Next()
-	if ok {
-		return m.fn(n), true
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type once[T any] struct {
+	val    T
+	called bool
+}
+
+// Create a new pipeline that yields the provided element exactly once.
+//
+//
+func Once[T any](val T) pipeline.PipelineStep[T, T] {
+	return pipeline.StepFrom[T, T](&once[T]{val, false})
+}
+
+func (o *once[T]) Next() (T, bool) {
+	if o.called {
+		return *new(T), false
 	} else {
-		return *new(U), false
+		o.called = true
+		return o.val, true
 	}
 }
