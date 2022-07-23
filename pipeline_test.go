@@ -16,7 +16,7 @@ func TestAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewFromSlice(tt.input).All(tt.pred)
+			got := FromSlice(tt.input).All(tt.pred)
 			if got != tt.expected {
 				t.Errorf("Failed. Got %v, expected %v", got, tt.expected)
 			}
@@ -38,7 +38,7 @@ func TestAny(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewFromSlice(tt.input).Any(tt.pred)
+			got := FromSlice(tt.input).Any(tt.pred)
 			if got != tt.expected {
 				t.Errorf("Failed. Got %v, expected %v", got, tt.expected)
 			}
@@ -47,15 +47,15 @@ func TestAny(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	if got := NewFromSlice([]int{}).Count(); got != 0 {
+	if got := FromSlice([]int{}).Count(); got != 0 {
 		t.Errorf("Failed. Got %v, expected 0", got)
 	}
 
-	if got := NewFromSlice([]int{1, 2, 3}).Count(); got != 3 {
+	if got := FromSlice([]int{1, 2, 3}).Count(); got != 3 {
 		t.Errorf("Failed. Got %v, expected 3", got)
 	}
 
-	if got := NewFromSlice([]int{1, 2, 3}).
+	if got := FromSlice([]int{1, 2, 3}).
 		Filter(func(i int) bool { return i&1 == 0 }).
 		Count(); got != 1 {
 		t.Errorf("Failed. Got %v, expected 1", got)
@@ -76,8 +76,8 @@ func TestCount(t *testing.T) {
 // 	}
 // 	for _, tt := range tests {
 // 		t.Run(tt.name, func(t *testing.T) {
-// 			x := NewFromSlice(tt.input).Any(tt.pred)
-// 			if got := NewFromSlice(tt.args.slice); !reflect.DeepEqual(got, tt.want) {
+// 			x := FromSlice(tt.input).Any(tt.pred)
+// 			if got := FromSlice(tt.args.slice); !reflect.DeepEqual(got, tt.want) {
 // 				t.Errorf("Failed. Got %v, expected %v", got, tt.expected)
 // 			}
 // 		})

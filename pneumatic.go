@@ -65,8 +65,6 @@ type once[T any] struct {
 }
 
 // Create a new pipeline that yields the provided element exactly once.
-//
-//
 func Once[T any](val T) pipeline.PipelineStep[T, T] {
 	return pipeline.StepFrom[T, T](&once[T]{val, false})
 }
@@ -78,4 +76,19 @@ func (o *once[T]) Next() (T, bool) {
 		o.called = true
 		return o.val, true
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type repeated[T any] struct {
+	val T
+}
+
+// Create a new pipeline that yields the provided element infinitely
+func Repeated[T any](val T) pipeline.PipelineStep[T, T] {
+	return pipeline.StepFrom[T, T](&repeated[T]{val})
+}
+
+func (r *repeated[T]) Next() (T, bool) {
+	return r.val, true
 }

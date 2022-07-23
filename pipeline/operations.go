@@ -67,26 +67,54 @@ func (m *mapOperation[T, U]) Next() (U, bool) {
 
 type mapWhile[T, U any] struct {
 	PipelineStep[T, U]
-	fn   func(T) (U, error)
+	fn   func(T) (U, bool)
 	done bool
 }
 
-func (p PipelineStep[T, U]) MapWhile(fn func(T) (U, error)) PipelineStep[U, U] {
+func (p PipelineStep[T, U]) MapWhile(fn func(T) (U, bool)) PipelineStep[U, U] {
 	return PipelineStep[U, U]{&mapWhile[T, U]{p, fn, false}}
 }
 
 func (m *mapWhile[T, U]) Next() (U, bool) {
 	n, ok := m.prev.Next()
 	if ok && !m.done {
-		val, err := m.fn(n)
-		if err != nil {
-			return *new(U), false
-		} else {
+		val, valid := m.fn(n)
+		if valid {
 			return val, true
+		} else {
+			return *new(U), false
 		}
 	} else {
 		return *new(U), false
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type scan[T any] struct {
+	PipelineStep[T, T]
+	primed   bool
+	previous T
+	fn       func(prev, next T) T
+}
+
+func (p PipelineStep[T, U]) Scan(fn func(prev, next T) T) PipelineStep[T, T] {
+	return PipelineStep[T, T]{&scan[T]{PipelineStep[T, T](p), false, *new(T), fn}}
+}
+
+func (s *scan[T]) Next() (T, bool) {
+	if val, ok := s.prev.Next(); ok {
+		if s.primed {
+			s.previous = s.fn(s.previous, val)
+		} else {
+			s.primed = true
+			s.previous = val
+		}
+		return s.previous, true
+	} else {
+		return *new(T), false
+	}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

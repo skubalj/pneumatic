@@ -25,7 +25,7 @@ func (p *PipelineStep[T, U]) Next() (T, bool) {
 
 // Returns true if for all elements in this pipeline, the predicate evaluates to `true`
 //
-// This function will short-circuit upon finding any element for which the predicate is false. On 
+// This function will short-circuit upon finding any element for which the predicate is false. On
 // an empty array, this will always evaluate to true.
 func (p PipelineStep[T, U]) All(pred func(T) bool) bool {
 	for {
@@ -79,3 +79,31 @@ func (p PipelineStep[T, U]) Count() int {
 		}
 	}
 }
+
+// Apply the provided function for each value in this pipeline
+func (p PipelineStep[T, U]) ForEach(fn func(T)) {
+	for {
+		val, ok := p.prev.Next()
+		if ok {
+			fn(val)
+		} else {
+			break
+		}
+	}
+}
+
+// func (p PipelineStep[T, U]) Reduce(fn func(prev, next T) T) (T, bool) {
+// 	value, ok := p.prev.Next()
+// 	if !ok {
+// 		return *new(T), false
+// 	}
+
+// 	for {
+// 		newVal, ok := p.prev.Next()
+// 		if ok {
+// 			value = fn(value, newVal)
+// 		} else {
+// 			return value, ok
+// 		}
+// 	}
+// }
