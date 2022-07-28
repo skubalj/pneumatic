@@ -92,18 +92,54 @@ func (p PipelineStep[T, U]) ForEach(fn func(T)) {
 	}
 }
 
-// func (p PipelineStep[T, U]) Reduce(fn func(prev, next T) T) (T, bool) {
-// 	value, ok := p.prev.Next()
-// 	if !ok {
-// 		return *new(T), false
-// 	}
+// Returns the first value for which the predicate is true
+func (p PipelineStep[T, U]) Find(pred func(T) bool) (T, bool) {
+	for {
+		if val, ok := p.prev.Next(); !ok {
+			return val, ok
+		} else if pred(val) {
+			return val, true
+		}
+	}
+}
 
-// 	for {
-// 		newVal, ok := p.prev.Next()
-// 		if ok {
-// 			value = fn(value, newVal)
-// 		} else {
-// 			return value, ok
-// 		}
-// 	}
-// }
+// Retrieve the nth element from the array. Note that indexing starts at 0
+func (p PipelineStep[T, U]) Nth(idx int) (T, bool) {
+	for i := 0; i < idx; i++ {
+		if val, ok := p.prev.Next(); !ok {
+			return val, ok
+		}
+	}
+	return p.prev.Next()
+}
+
+// Divide this pipeline into two different slices based on whether the predicate holds true
+func (p PipelineStep[T, U]) Partition(pred func(T) bool) ([]T, []T) {
+	trueElements := []T{}
+	falseElements := []T{}
+	for {
+		if val, ok := p.prev.Next(); !ok {
+			return trueElements, falseElements
+		} else if pred(val) {
+			trueElements = append(trueElements, val)
+		} else {
+			falseElements = append(falseElements, val)
+		}
+	}
+}
+
+func (p PipelineStep[T, U]) Reduce(fn func(prev, next T) T) (T, bool) {
+	value, ok := p.prev.Next()
+	if !ok {
+		return *new(T), false
+	}
+
+	for {
+		newVal, ok := p.prev.Next()
+		if ok {
+			value = fn(value, newVal)
+		} else {
+			return value, true
+		}
+	}
+}
