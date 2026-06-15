@@ -369,7 +369,7 @@ func Max[T cmp.Ordered](seq iter.Seq[T]) (val T, ok bool) {
 
 func MaxBy[T any](cmp func(a, b T) int, seq iter.Seq[T]) (val T, ok bool) {
 	return Reduce(func(a, b T) T {
-		if cmp(a, b) < 0 {
+		if cmp(a, b) > 0 {
 			return a
 		} else {
 			return b
